@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hestia — AI 认知基础设施</title>
+<meta name="description" content="Hestia 是一个开放式 AI 认知基础设施项目：长期记忆、知识组织、Agent 推理与执行，共同构成下一代 AI 的认知底座。">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23046B27'/><path d='M50 20 L78 36 L78 64 L50 80 L22 64 L22 36 Z' fill='none' stroke='%2309B83E' stroke-width='6'/><circle cx='50' cy='50' r='10' fill='%2309B83E'/></svg>">
+<style>
+:root{
+  --green:#09B83E;
+  --green-deep:#046B27;
+  --green-soft:#E7F7EC;
+  --blue:#1E6FD9;
+  --blue-deep:#12479E;
+  --blue-soft:#EAF2FE;
+  --ink:#0C1A12;
+  --ink-2:#243A2E;
+  --muted:#5E7066;
+  --line:#DFEAE3;
+  --bg:#F6FAF7;
+  --surface:#FFFFFF;
+  --shadow:0 18px 50px -18px rgba(4,107,39,.18);
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);font-size:16px;line-height:1.75;color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+.wrap{width:min(1160px,92vw);margin-inline:auto}
+.mono{font-family:var(--mono)}
+
+/* scroll progress */
+#progress{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--green),var(--blue));z-index:100;transition:width .08s linear}
+
+/* nav */
+nav{position:fixed;top:0;left:0;right:0;z-index:90;background:rgba(246,250,247,.86);backdrop-filter:blur(14px);border-bottom:1px solid transparent;transition:border-color .3s,box-shadow .3s}
+nav.scrolled{border-bottom-color:var(--line);box-shadow:0 8px 24px -20px rgba(0,0,0,.4)}
+.nav-in{display:flex;align-items:center;justify-content:space-between;height:68px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;letter-spacing:.5px}
+.brand .mark{width:34px;height:34px;position:relative}
+.brand .mark svg{width:100%;height:100%}
+.nav-links{display:flex;gap:30px;align-items:center;font-size:14px;color:var(--muted);font-weight:600}
+.nav-links a{transition:color .2s}
+.nav-links a:hover{color:var(--green-deep)}
+.nav-cta{display:inline-flex;align-items:center;gap:8px;padding:9px 17px;border-radius:9px;background:var(--ink);color:#fff!important;font-size:13.5px;font-weight:700;transition:transform .2s,box-shadow .2s}
+.nav-cta:hover{transform:translateY(-2px);box-shadow:0 10px 22px -10px rgba(12,26,18,.6)}
+.github-glyph{width:17px;height:17px;fill:#fff}
+.menu-btn{display:none;background:none;border:0;cursor:pointer;width:32px;height:32px}
+.menu-btn span{display:block;height:2px;background:var(--ink);margin:6px 0;border-radius:2px;transition:.3s}
+
+/* hero */
+header.hero{position:relative;padding:150px 0 90px;overflow:hidden}
+#net{position:absolute;inset:0;width:100%;height:100%;z-index:0;opacity:.9}
+.hero-grid{position:relative;z-index:2;display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center}
+.eyebrow{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:12.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--green-deep);background:var(--green-soft);border:1px solid #CDEDD7;padding:7px 13px;border-radius:100px;font-weight:600}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px rgba(9,184,62,.16);animation:pulse 2s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 8px rgba(9,184,62,0)}}
+h1.hero-title{font-size:clamp(48px,6.4vw,86px);line-height:1.04;font-weight:850;letter-spacing:-2px;margin:26px 0 20px}
+h1.hero-title .h-gradient{background:linear-gradient(105deg,var(--green-deep),var(--green) 45%,var(--blue));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero-sub{font-size:18px;color:var(--muted);max-width:540px;line-height:1.8}
+.hero-sub strong{color:var(--ink-2);font-weight:700}
+.hero-actions{display:flex;gap:14px;margin-top:34px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:14px 24px;border-radius:11px;font-weight:700;font-size:15px;transition:transform .2s,box-shadow .2s,background .2s;cursor:pointer;border:0}
+.btn-primary{background:linear-gradient(120deg,var(--green-deep),var(--green));color:#fff;box-shadow:0 16px 30px -14px rgba(9,184,62,.7)}
+.btn-primary:hover{transform:translateY(-3px);box-shadow:0 22px 36px -14px rgba(9,184,62,.75)}
+.btn-ghost{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+.btn-ghost:hover{transform:translateY(-3px);border-color:var(--green)}
+.btn .arrow{transition:transform .2s}
+.btn:hover .arrow{transform:translateX(4px)}
+
+/* hero stack graphic */
+.stack-visual{position:relative;display:flex;flex-direction:column;gap:12px;padding:10px}
+.stack-card{background:rgba(255,255,255,.86);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:15px;padding:16px 20px;display:flex;align-items:center;gap:15px;box-shadow:var(--shadow);transition:transform .35s cubic-bezier(.2,.8,.2,1),border-color .3s}
+.stack-card:nth-child(1){margin-left:34%}
+.stack-card:nth-child(2){margin-left:17%}
+.stack-card:nth-child(3){margin-left:0}
+.stack-card:nth-child(4){margin-left:17%}
+.stack-card:nth-child(5){margin-left:34%}
+.stack-card:hover{transform:translateX(-8px) scale(1.02);border-color:var(--green)}
+.stack-ico{width:42px;height:42px;flex:0 0 42px;border-radius:11px;display:grid;place-items:center;color:#fff;font-weight:800;font-family:var(--mono);font-size:15px}
+.stack-card h4{font-size:15px;font-weight:800}
+.stack-card p{font-size:12px;color:var(--muted);font-family:var(--mono)}
+.ico-1{background:linear-gradient(135deg,#046B27,#09B83E)}
+.ico-2{background:linear-gradient(135deg,#09B83E,#3ecf6a)}
+.ico-3{background:linear-gradient(135deg,#12479E,#1E6FD9)}
+.ico-4{background:linear-gradient(135deg,#1E6FD9,#4d94f0)}
+.ico-5{background:linear-gradient(135deg,#0C1A12,#2c4a38)}
+
+/* stats */
+.stats{padding:0 0 70px;position:relative;z-index:2}
+.stats-in{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.stat{background:var(--surface);padding:30px 22px;text-align:center}
+.stat .num{font-size:40px;font-weight:850;letter-spacing:-1px;line-height:1;font-family:var(--mono)}
+.stat .num.g{color:var(--green-deep)}
+.stat .num.b{color:var(--blue)}
+.stat .lbl{font-size:13px;color:var(--muted);margin-top:10px;font-weight:600}
+
+/* section common */
+section.block{padding:88px 0}
+.sec-head{max-width:720px;margin-bottom:50px}
+.sec-kicker{font-family:var(--mono);font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--blue);font-weight:700}
+.sec-title{font-size:clamp(30px,4vw,46px);font-weight:840;letter-spacing:-1px;line-height:1.18;margin:12px 0 16px}
+.sec-desc{font-size:17px;color:var(--muted);line-height:1.85}
+
+/* ecosystem map */
+#ecosystem{background:var(--surface);border-block:1px solid var(--line)}
+.eco-layout{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+.eco-col{display:flex;flex-direction:column;gap:12px}
+.eco-item{display:flex;align-items:center;gap:16px;padding:17px 20px;border:1px solid var(--line);border-radius:14px;background:var(--bg);cursor:pointer;transition:all .25s;position:relative;overflow:hidden}
+.eco-item::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:transparent;transition:background .25s}
+.eco-item:hover,.eco-item.active{border-color:var(--green);transform:translateX(5px);box-shadow:var(--shadow);background:#fff}
+.eco-item.active::before{background:var(--green)}
+.eco-badge{font-family:var(--mono);font-size:12px;font-weight:700;color:#fff;padding:6px 9px;border-radius:8px;flex:0 0 auto;min-width:44px;text-align:center}
+.eco-item h4{font-size:16px;font-weight:800}
+.eco-item p{font-size:12.5px;color:var(--muted);font-family:var(--mono)}
+.eco-detail{background:linear-gradient(150deg,#F4FBF6,#EDF4FD);border:1px solid var(--line);border-radius:20px;padding:36px;min-height:400px;position:sticky;top:90px}
+.eco-detail .d-tag{font-family:var(--mono);font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--green-deep);font-weight:700}
+.eco-detail h3{font-size:30px;font-weight:840;margin:12px 0 8px;letter-spacing:-.5px}
+.eco-detail .d-en{font-family:var(--mono);font-size:13px;color:var(--blue);margin-bottom:20px}
+.eco-detail .d-body{font-size:15.5px;color:var(--ink-2);line-height:1.85}
+.eco-detail ul{list-style:none;margin:22px 0 0;display:flex;flex-direction:column;gap:11px}
+.eco-detail li{display:flex;gap:11px;align-items:flex-start;font-size:14px;color:var(--ink-2)}
+.eco-detail li::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--green);margin-top:9px;flex:0 0 auto}
+.eco-detail .d-link{display:inline-flex;align-items:center;gap:8px;margin-top:26px;font-size:14px;font-weight:700;color:var(--green-deep);border-bottom:2px solid var(--green);padding-bottom:3px}
+
+/* philosophy verbs */
+#vision{background:linear-gradient(160deg,#062016,#0A2A1C 55%,#08243A);color:#fff;position:relative;overflow:hidden}
+#vision::before{content:"";position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(9,184,62,.18),transparent 65%);top:-200px;right:-120px}
+#vision::after{content:"";position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(30,111,217,.16),transparent 65%);bottom:-220px;left:-100px}
+.vision-in{position:relative;z-index:2}
+#vision .sec-kicker{color:#6ee29b}
+#vision .sec-title{color:#fff}
+#vision .sec-desc{color:#A9C3B4}
+.verbs{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-top:48px}
+.verb{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:26px 18px;text-align:center;transition:all .3s;cursor:default;backdrop-filter:blur(4px)}
+.verb:hover{background:rgba(9,184,62,.14);border-color:var(--green);transform:translateY(-8px)}
+.verb .vi{font-family:var(--mono);font-size:26px;font-weight:800;color:#6ee29b;margin-bottom:10px}
+.verb .vt{font-size:15px;font-weight:800}
+.verb .vc{font-size:12px;color:#8FB5A0;margin-top:6px;font-family:var(--mono)}
+
+/* projects */
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:38px}
+.filter{padding:9px 18px;border-radius:100px;border:1px solid var(--line);background:var(--surface);font-size:13.5px;font-weight:700;color:var(--muted);cursor:pointer;transition:all .2s}
+.filter:hover{border-color:var(--green);color:var(--green-deep)}
+.filter.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:17px;padding:24px;display:flex;flex-direction:column;transition:transform .3s cubic-bezier(.2,.8,.2,1),box-shadow .3s,border-color .3s;position:relative;overflow:hidden}
+.card::after{content:"";position:absolute;top:0;right:0;width:90px;height:90px;background:radial-gradient(circle at top right,rgba(9,184,62,.10),transparent 70%);pointer-events:none}
+.card:hover{transform:translateY(-7px);box-shadow:var(--shadow);border-color:#BFE6CC}
+.card.hide{display:none}
+.card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px}
+.card-lang{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:12px;color:var(--muted);font-weight:600}
+.lang-dot{width:10px;height:10px;border-radius:50%}
+.card-stars{font-family:var(--mono);font-size:12.5px;color:var(--ink-2);font-weight:700;display:inline-flex;align-items:center;gap:4px}
+.card h3{font-size:19px;font-weight:820;letter-spacing:-.3px;margin-bottom:5px}
+.card .cat{font-family:var(--mono);font-size:11.5px;letter-spacing:1px;text-transform:uppercase;color:var(--blue);font-weight:700;margin-bottom:12px}
+.card p.desc{font-size:14px;color:var(--muted);line-height:1.7;flex:1}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:16px}
+.tag{font-size:11px;font-family:var(--mono);color:var(--green-deep);background:var(--green-soft);padding:4px 9px;border-radius:6px}
+.card-foot{margin-top:18px;padding-top:16px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:700;color:var(--green-deep)}
+.card-foot .lic{font-family:var(--mono);font-size:11px;color:var(--muted);font-weight:600}
+.card-foot .go{transition:transform .2s}
+.card:hover .card-foot .go{transform:translateX(5px)}
+
+/* about / footer */
+#about{background:var(--surface);border-top:1px solid var(--line)}
+.about-in{display:grid;grid-template-columns:.9fr 1.1fr;gap:56px;align-items:center}
+.about-quote{font-size:clamp(22px,3vw,32px);font-weight:750;line-height:1.5;letter-spacing:-.5px}
+.about-quote em{font-style:normal;background:linear-gradient(120deg,var(--green-deep),var(--green));-webkit-background-clip:text;background-clip:text;color:transparent}
+.about-body p{color:var(--muted);font-size:16px;line-height:1.9;margin-bottom:16px}
+.socials{display:flex;gap:12px;flex-wrap:wrap;margin-top:26px}
+.social{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border:1px solid var(--line);border-radius:10px;font-size:13.5px;font-weight:700;transition:all .2s}
+.social:hover{border-color:var(--green);color:var(--green-deep);transform:translateY(-2px)}
+footer{background:#0A1710;color:#9FB8A9;padding:60px 0 30px}
+.foot-top{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:30px;padding-bottom:36px;border-bottom:1px solid rgba(255,255,255,.1)}
+.foot-brand{font-size:24px;font-weight:850;color:#fff;display:flex;align-items:center;gap:10px}
+.foot-brand .mark{width:30px;height:30px}
+.foot-tagline{max-width:420px;margin-top:14px;font-size:14px;line-height:1.8;color:#7E9A8A}
+.foot-nav{display:flex;gap:50px}
+.foot-col h5{color:#fff;font-size:13px;font-family:var(--mono);letter-spacing:1px;text-transform:uppercase;margin-bottom:16px}
+.foot-col a{display:block;font-size:14px;margin-bottom:10px;transition:color .2s}
+.foot-col a:hover{color:#6ee29b}
+.foot-bottom{display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px;padding-top:26px;font-size:13px;color:#6F8A79;font-family:var(--mono)}
+.foot-bottom .byline{color:#A9C3B4;font-weight:600}
+.foot-bottom .byline b{color:#6ee29b}
+
+/* back to top */
+#toTop{position:fixed;right:24px;bottom:24px;width:48px;height:48px;border-radius:50%;background:var(--ink);color:#fff;border:0;cursor:pointer;font-size:20px;display:grid;place-items:center;box-shadow:var(--shadow);opacity:0;pointer-events:none;transform:translateY(12px);transition:all .3s;z-index:80}
+#toTop.show{opacity:1;pointer-events:auto;transform:none}
+
+/* reveal */
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.8,.2,1)}
+.reveal.in{opacity:1;transform:none}
+
+@media(max-width:960px){
+  .hero-grid,.eco-layout,.about-in{grid-template-columns:1fr}
+  .hero-grid{gap:50px}
+  .stack-card:nth-child(n){margin-left:0}
+  .stack-visual{max-width:520px}
+  .eco-detail{position:relative;top:0}
+  .verbs{grid-template-columns:repeat(2,1fr)}
+  .grid{grid-template-columns:repeat(2,1fr)}
+  .stats-in{grid-template-columns:repeat(2,1fr)}
+  .nav-links{display:none;position:absolute;top:68px;left:0;right:0;background:var(--surface);flex-direction:column;align-items:stretch;padding:20px 6vw;gap:18px;border-bottom:1px solid var(--line);box-shadow:var(--shadow)}
+  .nav-links.open{display:flex}
+  .menu-btn{display:block}
+}
+@media(max-width:620px){
+  .grid,.verbs{grid-template-columns:1fr}
+  h1.hero-title{letter-spacing:-1px}
+  .foot-nav{flex-direction:column;gap:24px}
+  .stats-in{grid-template-columns:repeat(2,1fr)}
+  section.block{padding:64px 0}
+}
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}.reveal{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+
+<nav id="nav">
+  <div class="wrap nav-in">
+    <a href="#top" class="brand">
+      <span class="mark"><svg viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#046B27"/><path d="M50 18 L80 35 L80 65 L50 82 L20 65 L20 35 Z" fill="none" stroke="#09B83E" stroke-width="6"/><circle cx="50" cy="50" r="11" fill="#09B83E"/></svg></span>
+      Hestia
+    </a>
+    <div class="nav-links" id="navLinks">
+      <a href="#ecosystem">生态架构</a>
+      <a href="#vision">认知愿景</a>
+      <a href="#projects">项目矩阵</a>
+      <a href="#about">关于</a>
+      <a href="https://github.com/snowfoxHQ" target="_blank" rel="noopener" class="nav-cta">
+        <svg class="github-glyph" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+    </div>
+    <button class="menu-btn" id="menuBtn" aria-label="菜单"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <canvas id="net"></canvas>
+  <div class="wrap hero-grid">
+    <div class="hero-copy reveal">
+      <span class="eyebrow"><span class="dot"></span> COGNITIVE INFRASTRUCTURE · 认知基础设施</span>
+      <h1 class="hero-title">让 AI<br>真正<span class="h-gradient">会思考</span></h1>
+      <p class="hero-sub">Hestia 把<strong>长期记忆、知识组织、自主推理与执行</strong>拆成可复用的一层底座。目标只有一个：让 Agent 能记住、会推理、懂组织、持续学习、不断进化。</p>
+      <div class="hero-actions">
+        <a href="#projects" class="btn btn-primary">浏览项目矩阵 <span class="arrow">→</span></a>
+        <a href="https://github.com/snowfoxHQ" target="_blank" rel="noopener" class="btn btn-ghost">View on GitHub <span class="arrow">↗</span></a>
+      </div>
+    </div>
+    <div class="stack-visual reveal" aria-hidden="true">
+      <div class="stack-card"><span class="stack-ico ico-5">RT</span><div><h4>Enterprise Agent Runtime</h4><p>autonomous execution</p></div></div>
+      <div class="stack-card"><span class="stack-ico ico-4">HKC</span><div><h4>Hestia Knowledge Core</h4><p>knowledge graph</p></div></div>
+      <div class="stack-card"><span class="stack-ico ico-3">VR</span><div><h4>VecRecall</h4><p>semantic retrieval</p></div></div>
+      <div class="stack-card"><span class="stack-ico ico-2">HMR</span><div><h4>Hestia Memory Runtime</h4><p>persistent memory</p></div></div>
+      <div class="stack-card"><span class="stack-ico ico-1">OS</span><div><h4>Hestia OS</h4><p>cognitive foundation</p></div></div>
+    </div>
+  </div>
+</header>
+
+<div class="stats wrap reveal">
+  <div class="stats-in">
+    <div class="stat"><div class="num g" data-count="17">0</div><div class="lbl">公开仓库 / REPOS</div></div>
+    <div class="stat"><div class="num b" data-count="5">0</div><div class="lbl">核心能力 / PILLARS</div></div>
+    <div class="stat"><div class="num g" data-count="100" data-suffix="%">0</div><div class="lbl">语义召回 R@5 / RECALL</div></div>
+    <div class="stat"><div class="num b" data-count="21">0</div><div class="lbl">中英混合评测集 / QUERIES</div></div>
+  </div>
+</div>
+
+<section class="block" id="ecosystem">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="sec-kicker">01 / ECOSYSTEM</div>
+      <h2 class="sec-title">一套认知底座，五个核心层</h2>
+      <p class="sec-desc">不是一堆零散工具，而是一组能互相咬合的能力层。点开任意一层，看它到底解决什么问题。</p>
+    </div>
+    <div class="eco-layout">
+      <div class="eco-col reveal" id="ecoList">
+        <div class="eco-item active" data-i="0"><span class="eco-badge" style="background:#046B27">OS</span><div><h4>Hestia OS</h4><p>认知操作系统</p></div></div>
+        <div class="eco-item" data-i="1"><span class="eco-badge" style="background:#09B83E">HMR</span><div><h4>Hestia Memory Runtime</h4><p>持久记忆运行时</p></div></div>
+        <div class="eco-item" data-i="2"><span class="eco-badge" style="background:#1E6FD9">VR</span><div><h4>VecRecall</h4><p>语义记忆检索引擎</p></div></div>
+        <div class="eco-item" data-i="3"><span class="eco-badge" style="background:#4d94f0">HKC</span><div><h4>Hestia Knowledge Core</h4><p>知识组织与演化</p></div></div>
+        <div class="eco-item" data-i="4"><span class="eco-badge" style="background:#0C1A12">RT</span><div><h4>Enterprise Agent Runtime</h4><p>企业级 Agent 基础设施</p></div></div>
+      </div>
+      <div class="eco-detail reveal" id="ecoDetail">
+        <div class="d-tag" id="dTag">FOUNDATION · 底座</div>
+        <h3 id="dTitle">Hestia OS</h3>
+        <div class="d-en" id="dEn">Cognitive Operating System</div>
+        <p class="d-body" id="dBody"></p>
+        <ul id="dList"></ul>
+        <a id="dLink" class="d-link" href="https://github.com/snowfoxHQ/HestiaOS" target="_blank" rel="noopener">查看仓库 <span>→</span></a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="vision">
+  <div class="wrap vision-in">
+    <div class="sec-head reveal">
+      <div class="sec-kicker">02 / VISION</div>
+      <h2 class="sec-title">未来 AI 的五个动词</h2>
+      <p class="sec-desc">Hestia 的愿景被压缩成五个动作。所有项目，最终都服务于这五个词。</p>
+    </div>
+    <div class="verbs">
+      <div class="verb reveal"><div class="vi">01</div><div class="vt">Remember</div><div class="vc">持续记忆</div></div>
+      <div class="verb reveal"><div class="vi">02</div><div class="vt">Reason</div><div class="vc">自主推理</div></div>
+      <div class="verb reveal"><div class="vi">03</div><div class="vt">Organize</div><div class="vc">知识组织</div></div>
+      <div class="verb reveal"><div class="vi">04</div><div class="vt">Learn</div><div class="vc">持续学习</div></div>
+      <div class="verb reveal"><div class="vi">05</div><div class="vt">Evolve</div><div class="vc">持续进化</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="projects">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="sec-kicker">03 / PROJECTS</div>
+      <h2 class="sec-title">项目矩阵</h2>
+      <p class="sec-desc">从认知内核到实验工具，全部开源。按类别筛选，找到你要的那一层。</p>
+    </div>
+    <div class="filters reveal" id="filters">
+      <button class="filter active" data-f="all">全部 17</button>
+      <button class="filter" data-f="core">认知核心</button>
+      <button class="filter" data-f="memory">记忆插件</button>
+      <button class="filter" data-f="tools">Agent 工具链</button>
+      <button class="filter" data-f="lab">实验工具</button>
+      <button class="filter" data-f="content">内容与教育</button>
+    </div>
+    <div class="grid" id="grid"></div>
+  </div>
+</section>
+
+<section class="block" id="about">
+  <div class="wrap about-in">
+    <div class="reveal">
+      <p class="about-quote">用 AI 创造 AI。<br>探索 agent、自动化与<em>自演化系统</em>。</p>
+      <div class="socials">
+        <a class="social" href="https://github.com/snowfoxHQ" target="_blank" rel="noopener">GitHub ↗</a>
+        <a class="social" href="https://www.youtube.com/@snowfoxHQ" target="_blank" rel="noopener">YouTube ↗</a>
+        <a class="social" href="https://x.com/snowttt" target="_blank" rel="noopener">X / Twitter ↗</a>
+        <a class="social" href="https://orcid.org/0009-0008-5466-3439" target="_blank" rel="noopener">ORCID ↗</a>
+      </div>
+    </div>
+    <div class="about-body reveal">
+      <p>Hestia 是一个开放式 AI 基础设施项目。它不把智能看成单一语言模型，而看成长期记忆、知识组织、Agent、自主推理与执行等多种核心能力协同工作的统一认知操作系统。</p>
+      <p>目前生态覆盖认知操作系统（Hestia OS）、长期记忆运行时（HMR）、语义记忆检索（VecRecall）、知识组织与演化（HKC）以及企业级 Agent 运行基础设施。所有项目以 MIT / Apache 2.0 为主，开放、可复用、离线优先。</p>
+      <p>这套主页本身也是一个作品：零依赖、单文件、可直接部署到 GitHub Pages。</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-top">
+      <div>
+        <div class="foot-brand"><span class="mark"><svg viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#09B83E"/><path d="M50 18 L80 35 L80 65 L50 82 L20 65 L20 35 Z" fill="none" stroke="#046B27" stroke-width="6"/><circle cx="50" cy="50" r="11" fill="#046B27"/></svg></span> Hestia</div>
+        <p class="foot-tagline">为下一代 AI 构建可复用的认知基础设施。让智能体真正拥有记住、推理、组织、学习与进化的能力。</p>
+      </div>
+      <div class="foot-nav">
+        <div class="foot-col"><h5>Explore</h5><a href="#ecosystem">生态架构</a><a href="#vision">认知愿景</a><a href="#projects">项目矩阵</a><a href="#about">关于</a></div>
+        <div class="foot-col"><h5>Links</h5><a href="https://github.com/snowfoxHQ" target="_blank" rel="noopener">GitHub</a><a href="https://www.youtube.com/@snowfoxHQ" target="_blank" rel="noopener">YouTube</a><a href="https://x.com/snowttt" target="_blank" rel="noopener">X / Twitter</a><a href="https://orcid.org/0009-0008-5466-3439" target="_blank" rel="noopener">ORCID</a></div>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 Hestia · Open Cognitive Infrastructure</span>
+      <span class="byline">Designed &amp; built <b>by SnowFox</b> — 独立印象馆</span>
+    </div>
+  </div>
+</footer>
+
+<button id="toTop" aria-label="返回顶部">↑</button>
+
+<script>
+/* ---------- data ---------- */
+const ECO = [
+  {tag:"FOUNDATION · 底座",title:"Hestia OS",en:"A Cognitive Operating System for AI Inference and Execution",
+   body:"Hestia OS 是整个生态的认知底座。它把智能看成多种能力协同的结果，而不是单一模型的输出，为上层记忆、知识与执行提供统一的运行基础。",
+   list:["面向 AI 推理与执行的认知操作系统","统一调度记忆、知识、Agent 等核心能力","生态愿景与架构的中枢仓库"],
+   link:"https://github.com/snowfoxHQ/HestiaOS"},
+  {tag:"MEMORY · 记忆",title:"Hestia Memory Runtime",en:"Persistent cognitive memory for AI agents",
+   body:"HMR 给 Agent 一套能思考的长期记忆。跨会话回忆、SM-2 遗忘曲线、记忆图谱与推理链追踪，让记忆不止是存储。",
+   list:["跨会话持久记忆与回忆","SM-2 遗忘曲线与新近度排序","记忆图谱 + 推理链追踪","MIT · Python · 配套 OpenClaw / DeepSeek 插件"],
+   link:"https://github.com/snowfoxHQ/HMR"},
+  {tag:"RETRIEVAL · 检索",title:"VecRecall",en:"Evolutionary long-term memory with hybrid retrieval",
+   body:"VecRecall v2.0 在向量检索之上叠加 LLM 认知层：写入时自动抽取实体、关系、摘要与话题，配合时序知识图谱和多跳混合检索。内置 21 组中英混合评测集，语义召回 R@5 达到 100%。",
+   list:["LLM 认知层：实体 / 关系 / 摘要 / 话题自动抽取","时序知识图谱 + 遗忘曲线 + 主动蒸馏","多跳向量 + 图谱混合检索，静态加密","语义召回 R@5 100% · 零依赖词法 76.2%"],
+   link:"https://github.com/snowfoxHQ/vecRecall"},
+  {tag:"KNOWLEDGE · 知识",title:"Hestia Knowledge Core",en:"AI-native personal knowledge system",
+   body:"hestia-hkc 把文件和电子书变成 3D 知识图谱。混合检索、能力编译与 AI 综合一体，模型无关、离线优先。",
+   list:["文件 / 电子书 → 3D 知识图谱（Three.js）","混合检索 + RAG，FastAPI 后端","Ability compilation 与 AI 综合","MIT · Python · 生态内 fork 最多的项目"],
+   link:"https://github.com/snowfoxHQ/hestia-hkc"},
+  {tag:"EXECUTION · 执行",title:"Enterprise Agent Runtime",en:"Infrastructure for enterprise-grade autonomous agents",
+   body:"企业级 Agent 运行基础设施，为自主智能体提供生产级的运行、调度与执行环境。它是 Hestia 愿景中把认知能力真正落地为行动的一层。",
+   list:["面向企业级自主 Agent 的运行基础设施","连接认知能力与真实执行","Hestia 生态愿景的执行层"],
+   link:"https://github.com/snowfoxHQ"}
+];
+
+const PROJECTS = [
+  {name:"HestiaOS",cat:"core",lang:"Docs",color:"#046B27",stars:1,lic:"—",desc:"认知操作系统：面向下一代 AI 推理与执行的统一底座与生态愿景。",tags:["cognitive-os","vision"],url:"https://github.com/snowfoxHQ/HestiaOS"},
+  {name:"HMR",cat:"core",lang:"Python",color:"#3572A5",stars:1,lic:"MIT",desc:"持久认知记忆：跨会话回忆、SM-2 遗忘曲线、记忆图谱与推理链追踪。",tags:["memory","reasoning"],url:"https://github.com/snowfoxHQ/HMR"},
+  {name:"VecRecall",cat:"core",lang:"Python",color:"#3572A5",stars:4,lic:"MIT",desc:"进化版长期记忆：LLM 认知层 + 时序图谱 + 多跳混合检索，语义召回 R@5 100%。",tags:["retrieval","rag","mcp"],url:"https://github.com/snowfoxHQ/vecRecall"},
+  {name:"hestia-hkc",cat:"core",lang:"Python",color:"#3572A5",stars:3,lic:"MIT",desc:"AI 原生个人知识系统：文件与电子书转 3D 知识图谱，混合检索与 AI 综合。",tags:["knowledge-graph","threejs","fastapi"],url:"https://github.com/snowfoxHQ/hestia-hkc"},
+  {name:"FoxClaw",cat:"lab",lang:"Python",color:"#3572A5",stars:2,lic:"MIT",desc:"个人 AI Agent——一只住进你设备里的狐狸。",tags:["agent","personal"],url:"https://github.com/snowfoxHQ/FoxClaw"},
+  {name:"dsh-hmr",cat:"memory",lang:"TypeScript",color:"#3178C6",stars:0,lic:"MIT",desc:"DeepSeek Harness 认知记忆插件：四层持久记忆，由 HMR 驱动。",tags:["dsh-plugin","memory","ts"],url:"https://github.com/snowfoxHQ/dsh-hmr"},
+  {name:"dsh-vecrecall",cat:"memory",lang:"TypeScript",color:"#3178C6",stars:0,lic:"MIT",desc:"DeepSeek Harness 持久四层记忆插件，基于 VecRecall。",tags:["dsh-plugin","recall","ts"],url:"https://github.com/snowfoxHQ/dsh-vecrecall"},
+  {name:"hmr-memory-skill",cat:"memory",lang:"Python",color:"#3572A5",stars:1,lic:"MIT",desc:"由 HMR 驱动的 OpenClaw 持久 Agent 记忆技能包。",tags:["agent-skill","openclaw"],url:"https://github.com/snowfoxHQ/hmr-memory-skill"},
+  {name:"arsenal-builder",cat:"tools",lang:"Python",color:"#3572A5",stars:0,lic:"MIT",desc:"自包含 Agent Skill 包：沙箱跑测试，宿主按机器可验证证据判定，设计上 fail-closed。",tags:["sandbox","fail-closed","skill"],url:"https://github.com/snowfoxHQ/arsenal-builder"},
+  {name:"ai-arsenal",cat:"tools",lang:"Batchfile",color:"#C1F12E",stars:0,lic:"MIT",desc:"面向 AI Agent 的 fail-closed 测试流水线：沙箱无关、退出码即判据、防假绿日志取证。",tags:["testing","ci","stdlib"],url:"https://github.com/snowfoxHQ/ai-arsenal"},
+  {name:"tool-result-classifier",cat:"tools",lang:"TypeScript",color:"#3178C6",stars:0,lic:"MIT",desc:"带证据链判定 Agent 工具调用成功/失败，专治 isError 字段漏标。",tags:["agent","evidence","ts"],url:"https://github.com/snowfoxHQ/tool-result-classifier"},
+  {name:"stringlab-demo",cat:"tools",lang:"Python",color:"#3572A5",stars:0,lic:"—",desc:"ai-arsenal 的演示靶子：19 个单测 + 一个故意的 bug 分支，用来展示闸门如何拦截。",tags:["demo","testing"],url:"https://github.com/snowfoxHQ/stringlab-demo"},
+  {name:"keel",cat:"lab",lang:"Rust",color:"#DEA584",stars:1,lic:"—",desc:"确定性持仓盈亏与回测内核：逐位可复现、零浮点、A 股费用规则，含本地 Web 回测工作台。",tags:["rust","backtest","deterministic"],url:"https://github.com/snowfoxHQ/keel"},
+  {name:"multi-frame-zstd",cat:"lab",lang:"JavaScript",color:"#F1E05A",stars:0,lic:"MIT",desc:"按 RFC 8878 帧边界逐帧解码拼接 zstd 数据，纯 JS 帧解析、零 npm 依赖。",tags:["zstd","zero-dep","js"],url:"https://github.com/snowfoxHQ/multi-frame-zstd"},
+  {name:"snowfox-editor",cat:"content",lang:"Python",color:"#3572A5",stars:0,lic:"Apache-2.0",desc:"微信公众号正文排版与编辑技能包：八类确定性自检、一键自愈、角色三值判定、交付契约。",tags:["wechat","editor","skill"],url:"https://github.com/snowfoxHQ/snowfox-editor"},
+  {name:"AI-For-Beginners",cat:"content",lang:"Docs",color:"#1E6FD9",stars:0,lic:"MIT",desc:"12 周、24 节课的 AI 入门课程：AI for All。",tags:["course","education"],url:"https://github.com/snowfoxHQ/AI-For-Beginners"},
+  {name:"snowfoxHQ",cat:"content",lang:"Docs",color:"#0C1A12",stars:0,lic:"—",desc:"组织主页仓库，承载 Hestia 生态的中英文愿景与整体介绍。",tags:["profile","ecosystem"],url:"https://github.com/snowfoxHQ/snowfoxHQ"}
+];
+
+/* ---------- ecosystem detail ---------- */
+const ecoList = document.getElementById('ecoList');
+const dTag=document.getElementById('dTag'),dTitle=document.getElementById('dTitle'),dEn=document.getElementById('dEn'),
+      dBody=document.getElementById('dBody'),dList=document.getElementById('dList'),dLink=document.getElementById('dLink');
+function renderEco(i){
+  const d=ECO[i];
+  dTag.textContent=d.tag;dTitle.textContent=d.title;dEn.textContent=d.en;dBody.textContent=d.body;
+  dList.innerHTML=d.list.map(x=>`<li>${x}</li>`).join('');dLink.href=d.link;
+  document.querySelectorAll('.eco-item').forEach(el=>el.classList.toggle('active',+el.dataset.i===i));
+}
+ecoList.querySelectorAll('.eco-item').forEach(el=>el.addEventListener('click',()=>renderEco(+el.dataset.i)));
+renderEco(0);
+
+/* ---------- projects grid + filter ---------- */
+const grid=document.getElementById('grid');
+function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+grid.innerHTML=PROJECTS.map(p=>`
+  <article class="card reveal" data-cat="${p.cat}">
+    <div class="card-top">
+      <span class="card-lang"><span class="lang-dot" style="background:${p.color}"></span>${esc(p.lang)}</span>
+      <span class="card-stars">★ ${p.stars}</span>
+    </div>
+    <h3>${esc(p.name)}</h3>
+    <div class="cat">${p.cat} / ${esc(p.lic)}</div>
+    <p class="desc">${esc(p.desc)}</p>
+    <div class="tags">${p.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
+    <div class="card-foot"><a href="${p.url}" target="_blank" rel="noopener">打开仓库 <span class="go">→</span></a><span class="lic">${esc(p.lic)}</span></div>
+  </article>`).join('');
+document.getElementById('filters').addEventListener('click',e=>{
+  const b=e.target.closest('.filter');if(!b)return;
+  document.querySelectorAll('.filter').forEach(f=>f.classList.remove('active'));
+  b.classList.add('active');
+  const f=b.dataset.f;
+  grid.querySelectorAll('.card').forEach(c=>c.classList.toggle('hide',f!=='all'&&c.dataset.cat!==f));
+});
+
+/* ---------- reveal on scroll ---------- */
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+/* ---------- nav scroll state + progress + toTop ---------- */
+const nav=document.getElementById('nav'),progress=document.getElementById('progress'),toTop=document.getElementById('toTop');
+function onScroll(){
+  const y=window.scrollY,h=document.documentElement.scrollHeight-window.innerHeight;
+  nav.classList.toggle('scrolled',y>20);
+  progress.style.width=(h>0?y/h*100:0)+'%';
+  toTop.classList.toggle('show',y>500);
+}
+window.addEventListener('scroll',onScroll,{passive:true});onScroll();
+toTop.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+
+/* ---------- mobile menu ---------- */
+const menuBtn=document.getElementById('menuBtn'),navLinks=document.getElementById('navLinks');
+menuBtn.addEventListener('click',()=>navLinks.classList.toggle('open'));
+navLinks.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>navLinks.classList.remove('open')));
+
+/* ---------- stat counters ---------- */
+const counted=new WeakSet();
+const cio=new IntersectionObserver(es=>es.forEach(e=>{
+  if(!e.isIntersecting)return;
+  const el=e.target;if(counted.has(el))return;counted.add(el);
+  const target=+el.dataset.count,suffix=el.dataset.suffix||'';
+  const t0=performance.now(),dur=1100;
+  (function tick(t){const p=Math.min((t-t0)/dur,1),ease=1-Math.pow(1-p,3);
+    el.textContent=Math.round(target*ease)+suffix;
+    if(p<1)requestAnimationFrame(tick);
+  })(t0);
+  cio.unobserve(el);
+}),{threshold:.5});
+document.querySelectorAll('[data-count]').forEach(el=>cio.observe(el));
+
+/* ---------- hero neural network ---------- */
+(function(){
+  const cv=document.getElementById('net'),ctx=cv.getContext('2d');
+  let w,h,dpr,nodes=[],mouse={x:-999,y:-999},raf;
+  const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const C=['9,184,62','4,107,39','30,111,217','77,148,240'];
+  function size(){
+    const r=cv.getBoundingClientRect();dpr=Math.min(window.devicePixelRatio||1,2);
+    w=r.width;h=r.height;cv.width=w*dpr;cv.height=h*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
+    const count=Math.max(38,Math.min(90,Math.floor(w/16)));
+    nodes=Array.from({length:count},()=>({
+      x:Math.random()*w,y:Math.random()*h,
+      vx:(Math.random()-.5)*.35,vy:(Math.random()-.5)*.35,
+      r:Math.random()*1.8+1,c:C[Math.floor(Math.random()*C.length)]
+    }));
+  }
+  function draw(){
+    ctx.clearRect(0,0,w,h);
+    const maxD=Math.min(140,w/8);
+    for(const n of nodes){
+      if(!reduce){n.x+=n.vx;n.y+=n.vy;
+        if(n.x<0||n.x>w)n.vx*=-1;if(n.y<0||n.y>h)n.vy*=-1;
+        const dx=n.x-mouse.x,dy=n.y-mouse.y,d2=dx*dx+dy*dy;
+        if(d2<120*120&&d2>1){const f=(120-Math.sqrt(d2))/120*.02;n.vx+=dx*f*.02;n.vy+=dy*f*.02;}
+        n.vx*=.995;n.vy*=.995;
+      }
+      ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(${n.c},.55)`;ctx.fill();
+    }
+    for(let i=0;i<nodes.length;i++)for(let j=i+1;j<nodes.length;j++){
+      const a=nodes[i],b=nodes[j],dx=a.x-b.x,dy=a.y-b.y,d=Math.hypot(dx,dy);
+      if(d<maxD){ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);
+        ctx.strokeStyle=`rgba(9,120,60,${(1-d/maxD)*.13})`;ctx.lineWidth=1;ctx.stroke();}
+    }
+    raf=requestAnimationFrame(draw);
+  }
+  size();draw();
+  let rz;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(size,150)});
+  cv.addEventListener('mousemove',e=>{const r=cv.getBoundingClientRect();mouse.x=e.clientX-r.left;mouse.y=e.clientY-r.top});
+  cv.addEventListener('mouseleave',()=>{mouse.x=-999;mouse.y=-999});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)cancelAnimationFrame(raf);else if(!reduce)draw()});
+})();
+</script>
+</body>
+</html>
